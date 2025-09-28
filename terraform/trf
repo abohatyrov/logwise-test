@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# ---------- ARGS
+
+env=$1
+ops=$2
+target=$3
+
+case ${env} in
+  sbx)
+    environment="sandbox"
+  ;;
+  *)
+    echo "Set env !"
+  ;;
+esac
+ 
+# ---------- Terraform Ops
+source "_global/scripts/ops.sh"
+_terraform_ops

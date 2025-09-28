@@ -1,0 +1,65 @@
+name: Build & Push app image
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "app/**"
+      - ".github/workflows/build_and_push.yaml"
+  workflow_dispatch:
+
+env:
+  REGION: us-central1
+  REPO_ID: fastapi-app-repo
+  IMAGE_NAME: fastapi-app
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      #################################################################
+      # TEMP AUTH (YOUR USER CREDENTIALS)                             #
+      #################################################################
+      - name: Auth with temporary user credentials
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_ADC_JSON }}
+
+      #################################################################
+      # WIF — COMMENTED FOR NOW                                       #
+      #################################################################
+      # - name: Auth via Workload Identity Federation
+      #   uses: google-github-actions/auth@v2
+      #   with:
+      #     workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      #     service_account: ${{ secrets.GCP_DEPLOYER_SA }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: 'gke-gcloud-auth-plugin'
+
+      - name: Configure gcloud project
+        run: gcloud config set project "${{ secrets.GCP_PROJECT_ID }}"
+
+      - name: Configure Docker auth for Artifact Registry
+        run: gcloud auth configure-docker "${{ env.REGION }}-docker.pkg.dev" --quiet
+
+      - name: Build & push image (app/)
+        run: |
+          IMAGE_HOST="${{ env.REGION }}-docker.pkg.dev"
+          PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
+          IMAGE="${IMAGE_HOST}/${PROJECT_ID}/${{ env.REPO_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          docker build -t "$IMAGE" ./app
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+
+      - name: Echo image reference
+        run: echo "${IMAGE}"
