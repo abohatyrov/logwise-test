@@ -10,7 +10,6 @@ Infrastructure is managed with **Terraform**, and deployments are automated via 
 **Runtime path**
 - `app/` container → pushed to **Artifact Registry (Docker)**.
 - Cloud Run (v2) service runs that image.
-- Service is private by default (no `allUsers` invoker binding in Terraform).
 
 **CI/CD path**
 - GitHub Actions uses **OIDC** → exchanges for Google credentials via **WIF**.
