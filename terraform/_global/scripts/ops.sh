@@ -33,6 +33,9 @@ _terraform_ops () {
     destroy)
        terraform destroy -var-file="${gvars}" -var-file="${lvars}"
     ;;
+    output)
+       terraform output ${target}
+    ;;
     *)
       echo "Set ops !"
     ;;

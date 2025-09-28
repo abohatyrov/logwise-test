@@ -20,31 +20,20 @@ jobs:
       id-token: write
       contents: read
 
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      #################################################################
-      # TEMP AUTH (YOUR USER CREDENTIALS)                             #
-      #################################################################
-      - name: Auth with temporary user credentials
-        uses: google-github-actions/auth@v2
+      - name: Auth via Workload Identity Federation
+        uses: google-github-actions/auth@v3
         with:
-          credentials_json: ${{ secrets.GCP_ADC_JSON }}
-
-      #################################################################
-      # WIF — COMMENTED FOR NOW                                       #
-      #################################################################
-      # - name: Auth via Workload Identity Federation
-      #   uses: google-github-actions/auth@v2
-      #   with:
-      #     workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-      #     service_account: ${{ secrets.GCP_DEPLOYER_SA }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
 
       - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          install_components: 'gke-gcloud-auth-plugin'
+        uses: google-github-actions/setup-gcloud@v3
 
       - name: Configure gcloud project
         run: gcloud config set project "${{ secrets.GCP_PROJECT_ID }}"
@@ -53,13 +42,18 @@ jobs:
         run: gcloud auth configure-docker "${{ env.REGION }}-docker.pkg.dev" --quiet
 
       - name: Build & push image (app/)
+        id: meta
         run: |
           IMAGE_HOST="${{ env.REGION }}-docker.pkg.dev"
           PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
           IMAGE="${IMAGE_HOST}/${PROJECT_ID}/${{ env.REPO_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           docker build -t "$IMAGE" ./app
           docker push "$IMAGE"
-          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
 
-      - name: Echo image reference
-        run: echo "${IMAGE}"
+      - name: Upload image-ref artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-ref
+          path: image.txt
+          retention-days: 1

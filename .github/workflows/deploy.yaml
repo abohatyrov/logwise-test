@@ -1,0 +1,100 @@
+name: Deploy to Cloud Run (Terraform)
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: 'Container image to deploy'
+        required: true
+        default: 'us-central1-docker.pkg.dev/logwise-devops-sandbox/fastapi-app-repo/fastapi-app:latest'
+  workflow_run:
+    workflows: ["Build & Push app image"]
+    types:
+      - completed
+
+env:
+  TF_DIR: terraform
+  TF_WORKSPACE: sbx
+
+jobs:
+  deploy:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+  
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Auth to GCP via WIF
+        if: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
+        id: authwif
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Use workflow_dispatch image
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: echo "IMAGE=${{ github.event.inputs.image }}" >> $GITHUB_ENV
+      
+      - name: Download image-ref artifact
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const runId = context.payload.workflow_run.id;
+            const arts = await github.rest.actions.listWorkflowRunArtifacts({owner, repo, run_id: runId});
+            const art = arts.data.artifacts.find(a => a.name === 'image-ref');
+            if (!art) core.setFailed('artifact image-ref not found');
+            const dl = await github.rest.actions.downloadArtifact({owner, repo, artifact_id: art.id, archive_format: 'zip'});
+            const fs = require('fs'); fs.writeFileSync('image-ref.zip', Buffer.from(dl.data));
+
+      - name: Extract image.txt
+        if: ${{ github.event_name == 'workflow_run' }}
+        run: |
+          unzip -q image-ref.zip
+          test -f image.txt || (echo "image.txt missing" && exit 1)
+          echo "IMAGE=$(cat image.txt)" >> $GITHUB_ENV
+          echo "Using IMAGE=$IMAGE"
+
+      - name: Cache Terraform plugins
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.TF_DIR }}/.terraform
+            ${{ env.TF_DIR }}/.terraform.lock.hcl
+          key: tf-${{ runner.os }}-${{ hashFiles('**/.terraform.lock.hcl') }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.1
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_DIR }}
+        run: ./trf ${{ env.TF_WORKSPACE }} init
+
+      - name: Terraform Plan
+        working-directory: ${{ env.TF_DIR }}
+        env:
+          TF_VAR_image:       ${{ env.IMAGE }}
+        run: |
+          ./trf ${{ env.TF_WORKSPACE }} plan
+
+      - name: Terraform Apply
+        working-directory: ${{ env.TF_DIR }}
+        env:
+          TF_VAR_image:       ${{ env.IMAGE }}
+        run: ./trf ${{ env.TF_WORKSPACE }} apply -auto-approve
+
+      - name: Cloud Run URL
+        working-directory: ${{ env.TF_DIR }}
+        run: ./trf ${{ env.TF_WORKSPACE }} output -raw cloud_run_url || true
