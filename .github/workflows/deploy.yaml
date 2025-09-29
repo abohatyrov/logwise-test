@@ -14,7 +14,7 @@ on:
 
 env:
   TF_DIR: terraform
-  TF_WORKSPACE: sbx
+  TF_WORKSPACE: sandbox
   GCP_PROJECT_ID: logwise-devops-sandbox
   REGION: us-central1
   REPO_ID: fastapi-app-repo
