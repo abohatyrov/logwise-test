@@ -52,10 +52,3 @@ jobs:
           docker build -t "$IMAGE" ./app
           docker push "$IMAGE"
           echo "image=$IMAGE" >> $GITHUB_OUTPUT
-
-      - name: Upload image-ref artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: image-ref
-          path: image.txt
-          retention-days: 1
