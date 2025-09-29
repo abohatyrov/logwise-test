@@ -75,10 +75,10 @@ jobs:
         env:
           TF_VAR_image:       ${{ env.IMAGE }}
         run: |
-          ./trf ${{ env.TF_WSPACE }} plan
+          ./trf ${{ env.TF_WSPACE }} plan -target="google_cloud_run_v2_service.app"
 
       - name: Terraform Apply
         working-directory: ${{ env.TF_DIR }}
         env:
           TF_VAR_image:       ${{ env.IMAGE }}
-        run: ./trf ${{ env.TF_WSPACE }} apply -auto-approve
+        run: ./trf ${{ env.TF_WSPACE }} apply -target="google_cloud_run_v2_service.app" -auto-approve

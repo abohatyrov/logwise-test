@@ -33,11 +33,11 @@ resource "google_cloud_run_v2_service" "app" {
     percent = 100
   }
 
-  depends_on = [
-    google_artifact_registry_repository.docker,
-    google_service_account.runtime,
-    google_project_iam_member.repo_run_admin,
-    google_project_iam_member.repo_ar_writer,
-    google_service_account_iam_member.repo_can_use_runtime_sa
-  ]
+  # depends_on = [
+  #   google_artifact_registry_repository.docker,
+  #   google_service_account.runtime,
+  #   google_project_iam_member.repo_run_admin,
+  #   google_project_iam_member.repo_ar_writer,
+  #   google_service_account_iam_member.repo_can_use_runtime_sa
+  # ]
 }
