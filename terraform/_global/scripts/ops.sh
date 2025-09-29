@@ -11,7 +11,7 @@ _terraform_ops () {
   terraform init -input=false -reconfigure
 
   # ---- ensure workspace exists, then select it ----
-  terraform workspace select "${WORKSPACE}" >/dev/null 2>&1 || terraform workspace new "${WORKSPACE}"
+  terraform workspace select "${WORKSPACE}"
 
   # ---- run the requested op ----
   case "${CMD}" in
