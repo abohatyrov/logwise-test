@@ -14,7 +14,7 @@ on:
 
 env:
   TF_DIR: terraform
-  TF_WORKSPACE: sandbox
+  TF_WSPACE: sandbox
   GCP_PROJECT_ID: logwise-devops-sandbox
   REGION: us-central1
   REPO_ID: fastapi-app-repo
@@ -75,10 +75,10 @@ jobs:
         env:
           TF_VAR_image:       ${{ env.IMAGE }}
         run: |
-          ./trf ${{ env.TF_WORKSPACE }} plan
+          ./trf ${{ env.TF_WSPACE }} plan
 
       - name: Terraform Apply
         working-directory: ${{ env.TF_DIR }}
         env:
           TF_VAR_image:       ${{ env.IMAGE }}
-        run: ./trf ${{ env.TF_WORKSPACE }} apply -auto-approve
+        run: ./trf ${{ env.TF_WSPACE }} apply -auto-approve
