@@ -56,6 +56,22 @@ jobs:
           REPO="${{ env.REPO_ID }}"
           SERVICE="${{ env.IMAGE_NAME }}"
           echo "IMAGE=${REGION}-docker.pkg.dev/${PROJECT}/${REPO}/${SERVICE}:${{ github.event.workflow_run.head_sha }}" >> $GITHUB_ENV
+      
+      - name: Set image in tfvars
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          : "${IMAGE:?IMAGE not set}"
+          FILE="vars/${{ env.TF_WSPACE }}.tfvars"
+          # escape slashes for sed
+          ESCAPED_IMG=$(printf '%s' "$IMAGE" | sed -e 's/[\/&]/\\&/g')
+          if grep -Eq '^[[:space:]]*image[[:space:]]*=' "$FILE"; then
+            sed -i.bak -E "s|^[[:space:]]*image[[:space:]]*=.*$|image = \"${ESCAPED_IMG}\"|" "$FILE"
+            rm -f "${FILE}.bak"
+          else
+            printf '\nimage = "%s"\n' "$IMAGE" >> "$FILE"
+          fi
+          echo "Updated $FILE to image = \"$IMAGE\""
+          tail -n +5 "$FILE" | sed -n '$p' || true
 
       - name: Cache Terraform plugins
         uses: actions/cache@v4
@@ -72,13 +88,9 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ${{ env.TF_DIR }}
-        env:
-          TF_VAR_image:       ${{ env.IMAGE }}
         run: |
           ./trf ${{ env.TF_WSPACE }} plan -target="google_cloud_run_v2_service.app"
 
       - name: Terraform Apply
         working-directory: ${{ env.TF_DIR }}
-        env:
-          TF_VAR_image:       ${{ env.IMAGE }}
         run: ./trf ${{ env.TF_WSPACE }} apply -target="google_cloud_run_v2_service.app" -auto-approve
