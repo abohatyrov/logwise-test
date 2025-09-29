@@ -15,6 +15,7 @@ on:
 env:
   TF_DIR: terraform
   TF_WORKSPACE: sbx
+  GCP_PROJECT_ID: logwise-devops-sandbox
 
 jobs:
   deploy:
@@ -25,7 +26,8 @@ jobs:
     permissions:
       id-token: write
       contents: read
-  
+      actions: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,7 +36,7 @@ jobs:
         uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v3
