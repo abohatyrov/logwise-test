@@ -1,18 +1,18 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# ---------- ARGS
+# -------- args --------
+ENV_ARG="${1:-}"; CMD="${2:-}"; TARGET="${3:-}"
 
-env=$1
-ops=$2
-target=$3
+if [[ -z "${ENV_ARG}" || -z "${CMD}" ]]; then
+  echo "Usage: ./trf <workspace> <init|plan|apply|destroy|output|backup|import> [target]"
+  exit 2
+fi
 
-case ${env} in
-  sbx)
-    environment="sandbox"
-  ;;
-  *)
-    echo "Set env !"
-  ;;
+# map env aliases
+case "${ENV_ARG}" in
+  sbx|sandbox) WORKSPACE="sandbox" ;;
+  *) echo "Unknown env '${ENV_ARG}'. Use sbx/sandbox."; exit 2 ;;
 esac
  
 # ---------- Terraform Ops

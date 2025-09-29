@@ -1,44 +1,52 @@
 _terraform_ops () {
+  # common files/vars
+  G_VARS="_global/vars/default.tfvars"
+  L_VARS="vars/${WORKSPACE}.tfvars"
+  TMPDIR="${RUNNER_TEMP:-/tmp}"
+  STAMP="$(date +%Y%m%d_%H%M%S)"
+  TFSTATE="${TMPDIR}/gcp-${WORKSPACE}-${STAMP}.tfstate"
+  TFPLAN="${TMPDIR}/gcp-${WORKSPACE}-${STAMP}.tfplan"
 
-  postfix=`date "+%Y:%m:%d_%H:%M:%S"`
-  file_name="gcp-${environment}-${postfix}"
-   
-  # ---------- Variables
-  gvars="_global/vars/default.tfvars"
-  lvars="vars/${environment}.tfvars"
-  tfstate="/Users/${USER}/.terraform.d/tfstate/${file_name}.tfstate"
-  tfplan="/Users/${USER}/.terraform.d/tfplan/${file_name}.tfplan"
-  
-  # ---------- TERRAFORM
-  terraform workspace select ${environment}
-  
-  case ${ops} in
+  # ---- always init first (non-interactive) ----
+  terraform init -input=false -reconfigure
+
+  # ---- ensure workspace exists, then select it ----
+  terraform workspace select "${WORKSPACE}" >/dev/null 2>&1 || terraform workspace new "${WORKSPACE}"
+
+  # ---- run the requested op ----
+  case "${CMD}" in
     init)
-      terraform init
-    ;;
+      # already initialized above; do nothing extra
+      ;;
     plan)
-      terraform plan ${target} -var-file="${gvars}" -var-file="${lvars}"
-    ;;
+      terraform plan -input=false ${TARGET:+${TARGET}} \
+        -var-file="${G_VARS}" -var-file="${L_VARS}" \
+        -out="${TFPLAN}"
+      ;;
     apply)
-      terraform state pull > ${tfstate}
-      terraform apply ${target} -var-file="${gvars}" -var-file="${lvars}"
-    ;;
-    backup)
-      terraform state pull > ${tfstate}
-    ;;
-    import)
-      terraform state pull > ${tfstate}
-      terraform import ${target} -var-file="${gvars}" -var-file="${lvars}"
-    ;;
+      terraform state pull > "${TFSTATE}" || true
+      terraform apply -input=false ${TARGET:+${TARGET}} \
+        -var-file="${G_VARS}" -var-file="${L_VARS}" \
+        -auto-approve
+      ;;
     destroy)
-       terraform destroy -var-file="${gvars}" -var-file="${lvars}"
-    ;;
+      terraform destroy -input=false \
+        -var-file="${G_VARS}" -var-file="${L_VARS}"
+      ;;
+    backup)
+      terraform state pull > "${TFSTATE}"
+      ;;
+    import)
+      terraform state pull > "${TFSTATE}"
+      terraform import ${TARGET:?provide resource address and id} \
+        -var-file="${G_VARS}" -var-file="${L_VARS}"
+      ;;
     output)
-       terraform output ${target}
-    ;;
+      terraform output ${TARGET:-}
+      ;;
     *)
-      echo "Set ops !"
-    ;;
+      echo "Unknown command '${CMD}'"
+      exit 2
+      ;;
   esac
-
 }

@@ -70,10 +70,6 @@ jobs:
         with:
           terraform_version: 1.13.1
 
-      - name: Terraform Init
-        working-directory: ${{ env.TF_DIR }}
-        run: ./trf ${{ env.TF_WORKSPACE }} init
-
       - name: Terraform Plan
         working-directory: ${{ env.TF_DIR }}
         env:
@@ -86,7 +82,3 @@ jobs:
         env:
           TF_VAR_image:       ${{ env.IMAGE }}
         run: ./trf ${{ env.TF_WORKSPACE }} apply -auto-approve
-
-      - name: Cloud Run URL
-        working-directory: ${{ env.TF_DIR }}
-        run: ./trf ${{ env.TF_WORKSPACE }} output -raw cloud_run_url || true
