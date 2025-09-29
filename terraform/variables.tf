@@ -53,3 +53,7 @@ variable "app_envs" {
   default = {}
 }
 
+variable "tfstate_bucket" {
+  type    = string
+  default = ""
+}

@@ -8,6 +8,10 @@ resource "google_cloud_run_v2_service" "app" {
 
     containers {
       image = var.image != "" ? var.image : "${var.region}-docker.pkg.dev/${var.project_id}/${var.repo_id}/${var.service_name}:latest"
+      
+      ports {
+        container_port = 8000
+      }
 
       dynamic "env" {
         for_each = var.app_envs

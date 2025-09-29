@@ -10,6 +10,4 @@ repo_id      = "fastapi-app-repo"
 wif_pool_id     = "github-pool"
 wif_provider_id = "github-provider"
 
-app_envs = {
-  "PORT" = 8000
-}
+tfstate_bucket = "logwise-test-tfstate"

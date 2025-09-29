@@ -16,6 +16,12 @@ resource "google_project_iam_member" "repo_ar_writer" {
   member  = local.repo_principal
 }
 
+resource "google_storage_bucket_iam_member" "repo_tfstate_rw" {
+  bucket = var.tfstate_bucket
+  role   = "roles/storage.objectAdmin"
+  member = local.repo_principal
+}
+
 # ============================= Service Account for Cloud Run =============================
 
 resource "google_service_account" "runtime" {
